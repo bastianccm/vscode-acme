@@ -1,6 +1,9 @@
 import { exec } from "child_process";
+import { homedir } from "os";
+import { openStdin } from "process";
 import {
   commands,
+  env,
   ExtensionContext,
   Position,
   Range,
@@ -99,61 +102,70 @@ export function activate(context: ExtensionContext) {
         break;
     }
 
-    const proc = exec(t, async (err, stdout, stderr) => {
-      if (stderr !== "") {
-        outputChannel.show(true);
-        outputChannel.appendLine(stderr);
-        return;
-      }
-
-      if (err !== null) {
-        console.log(err);
-        window.showInformationMessage(err.message);
-        return;
-      }
-
-      let curDoc = lastEditor;
-      let pos: Position | Range | Selection;
-
-      if (out) {
-        pos = new Range(
-          new Position(0, 0),
-          new Position(
-            lastEditor!.document.lineCount - 1,
-            lastEditor!.document.lineAt(
-              lastEditor!.document.lineCount - 1
-            ).range.end.character
-          )
-        );
-        if (lastEditor?.selection) {
-          pos = lastEditor?.selection;
+    const proc = exec(
+      t,
+      {
+        cwd:
+          workspace.workspaceFolders?.[0].uri.fsPath ||
+          env.appRoot ||
+          homedir(),
+      },
+      async (err, stdout, stderr) => {
+        if (stderr !== "") {
+          outputChannel.show(true);
+          outputChannel.appendLine(stderr);
+          return;
         }
-      } else {
-        if (document === null) {
-          document = await workspace.openTextDocument({
-            language: "shell",
-            content: "",
+
+        if (err !== null) {
+          console.log(err);
+          window.showInformationMessage(err.message);
+          return;
+        }
+
+        let curDoc = lastEditor;
+        let pos: Position | Range | Selection;
+
+        if (out) {
+          pos = new Range(
+            new Position(0, 0),
+            new Position(
+              lastEditor!.document.lineCount - 1,
+              lastEditor!.document.lineAt(
+                lastEditor!.document.lineCount - 1
+              ).range.end.character
+            )
+          );
+          if (lastEditor?.selection) {
+            pos = lastEditor?.selection;
+          }
+        } else {
+          if (document === null) {
+            document = await workspace.openTextDocument({
+              language: "shell",
+              content: "",
+            });
+          }
+          curDoc = await window.showTextDocument(document, {
+            viewColumn: 2,
+            preserveFocus: true,
+            preview: false,
           });
+          pos = new Position(
+            document.lineCount - 1,
+            document.lineAt(document.lineCount - 1).range.end.character
+          );
+          lastEditor = curDoc;
         }
-        curDoc = await window.showTextDocument(document, {
-          viewColumn: 2,
-          preserveFocus: true,
-          preview: false,
+        console.log([out, pos, curDoc]);
+        if (!curDoc) {
+          return;
+        }
+        curDoc.edit((edit) => {
+          edit.replace(pos, stdout);
         });
-        pos = new Position(
-          document.lineCount - 1,
-          document.lineAt(document.lineCount - 1).range.end.character
-        );
-        lastEditor = curDoc;
       }
-      console.log([out, pos, curDoc]);
-      if (!curDoc) {
-        return;
-      }
-      curDoc.edit((edit) => {
-        edit.replace(pos, stdout);
-      });
-    });
+    );
     console.log([input, proc.stdin]);
     if (input && proc.stdin) {
       proc.stdin.write(input);
