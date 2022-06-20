@@ -119,6 +119,7 @@ export function activate(context: ExtensionContext) {
 
         if (err !== null) {
           console.log(err);
+          outputChannel.appendLine(stderr);
           window.showInformationMessage(err.message);
           return;
         }
@@ -164,6 +165,8 @@ export function activate(context: ExtensionContext) {
         curDoc.edit((edit) => {
           edit.replace(pos, stdout);
         });
+        const endpos = new Position(document?.lineCount! - 1 + stdout.split("\n").length, 0);
+        curDoc.revealRange(new Range(endpos, endpos));
       }
     );
     console.log([input, proc.stdin]);
@@ -173,7 +176,7 @@ export function activate(context: ExtensionContext) {
     }
     setTimeout(() => {
       proc.kill("SIGKILL");
-    }, 1_000);
+    }, 10_000);
   });
 
   context.subscriptions.push(disposable);
