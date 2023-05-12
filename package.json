@@ -2,7 +2,7 @@
 	"name": "vscode-acme",
 	"displayName": "vscode-acme",
 	"description": "A VSCode Plugin supporting a acme editor style command integration",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"repository": "https://github.com/bastianccm/vscode-acme.git",
 	"license": "MIT",
 	"engines": {

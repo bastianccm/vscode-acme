@@ -114,7 +114,6 @@ export function activate(context: ExtensionContext) {
         if (stderr !== "") {
           outputChannel.show(true);
           outputChannel.appendLine(stderr);
-          return;
         }
 
         if (err !== null) {
