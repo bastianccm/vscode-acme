@@ -1,6 +1,5 @@
 import { exec } from "child_process";
 import { homedir } from "os";
-import { openStdin } from "process";
 import {
   commands,
   env,
@@ -18,7 +17,7 @@ let document: TextDocument | null = null;
 
 export function activate(context: ExtensionContext) {
   const outputChannel = window.createOutputChannel("VSCode-Acme");
-  let lastEditor: TextEditor | undefined = undefined;
+  let lastEditor: TextEditor | undefined = window.activeTextEditor;
   let currentEditor: TextEditor | undefined = window.activeTextEditor;
 
   window.onDidChangeActiveTextEditor((editor) => {
@@ -86,7 +85,7 @@ export function activate(context: ExtensionContext) {
         t = t.substring(1);
         input = lastEditor?.document.getText();
         if (lastEditor?.selection) {
-          lastEditor?.document.getText(lastEditor.selection);
+          input = lastEditor?.document.getText(lastEditor.selection);
         }
         break;
       case "|":
@@ -94,13 +93,15 @@ export function activate(context: ExtensionContext) {
         t = t.substring(1);
         input = lastEditor?.document.getText();
         if (lastEditor?.selection) {
-          lastEditor?.document.getText(lastEditor.selection);
+          input = lastEditor?.document.getText(lastEditor.selection);
         }
         break;
       case "-":
         t = t.substring(1);
         break;
     }
+
+    console.log(t);
 
     const proc = exec(
       t,
@@ -164,7 +165,10 @@ export function activate(context: ExtensionContext) {
         curDoc.edit((edit) => {
           edit.replace(pos, stdout);
         });
-        const endpos = new Position(document?.lineCount! - 1 + stdout.split("\n").length, 0);
+        const endpos = new Position(
+          document?.lineCount! - 1 + stdout.split("\n").length,
+          0
+        );
         curDoc.revealRange(new Range(endpos, endpos));
       }
     );
